@@ -1,5 +1,5 @@
-use crate::{DoOnAcquired, Error, SelectChannels};
-use core::marker::PhantomData;
+use crate::{DoOnAcquired, Error, SelectChannels, Xca954xaData};
+use core::{cell, marker::PhantomData};
 use embedded_hal::i2c as ehal;
 
 /// Slave I2C device
@@ -84,18 +84,59 @@ where
         address: u8,
         operations: &mut [ehal::Operation<'_>],
     ) -> Result<(), Self::Error> {
-        self.0
-            .do_on_acquired(|mut dev| dev.i2c.transaction(address, operations).map_err(Error::I2C))
+        self.0.do_on_acquired(|mut dev| {
+            let previous_channel_mask = dev.selected_channel_mask;
+            let need_to_change_channel_mask = dev.selected_channel_mask != self.1;
+            if need_to_change_channel_mask {
+                dev.select_channels(self.1)?;
+            }
+
+            dev.i2c
+                .transaction(address, operations)
+                .map_err(Error::I2C)?;
+
+            if need_to_change_channel_mask {
+                dev.select_channels(previous_channel_mask)?;
+            }
+
+            Ok(())
+        })
     }
 
     fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
-        self.0
-            .do_on_acquired(|mut dev| dev.i2c.read(address, read).map_err(Error::I2C))
+        self.0.do_on_acquired(|mut dev| {
+            let previous_channel_mask = dev.selected_channel_mask;
+            let need_to_change_channel_mask = dev.selected_channel_mask != self.1;
+            if need_to_change_channel_mask {
+                dev.select_channels(self.1)?;
+            }
+
+            dev.i2c.read(address, read).map_err(Error::I2C)?;
+
+            if need_to_change_channel_mask {
+                dev.select_channels(previous_channel_mask)?;
+            }
+
+            Ok(())
+        })
     }
 
     fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
-        self.0
-            .do_on_acquired(|mut dev| dev.i2c.write(address, write).map_err(Error::I2C))
+        self.0.do_on_acquired(|mut dev| {
+            let previous_channel_mask = dev.selected_channel_mask;
+            let need_to_change_channel_mask = dev.selected_channel_mask != self.1;
+            if need_to_change_channel_mask {
+                dev.select_channels(self.1)?;
+            }
+
+            dev.i2c.write(address, write).map_err(Error::I2C)?;
+
+            if need_to_change_channel_mask {
+                dev.select_channels(previous_channel_mask)?;
+            }
+
+            Ok(())
+        })
     }
 
     fn write_read(
@@ -104,7 +145,23 @@ where
         write: &[u8],
         read: &mut [u8],
     ) -> Result<(), Self::Error> {
-        self.0
-            .do_on_acquired(|mut dev| dev.i2c.write_read(address, write, read).map_err(Error::I2C))
+        self.0.do_on_acquired(|mut dev| {
+            let previous_channel_mask = dev.selected_channel_mask;
+            let need_to_change_channel_mask = dev.selected_channel_mask != self.1;
+            if need_to_change_channel_mask {
+                dev.select_channels(self.1)?;
+            }
+
+            dev.i2c
+                .write_read(address, write, read)
+                .map_err(Error::I2C)?;
+
+            if need_to_change_channel_mask {
+                dev.select_channels(previous_channel_mask)?;
+            }
+
+            Ok(())
+        })
     }
 }
+
