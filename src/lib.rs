@@ -174,7 +174,7 @@ pub use types::{Error, SlaveAddr, Xca9543a, Xca9545a, Xca9548a};
 mod device_impl;
 pub use device_impl::{DoOnAcquired, SelectChannels, Xca954xaData};
 mod parts;
-pub use crate::parts::{I2cSlave, Parts, Parts2, Parts4};
+pub use crate::parts::{I2cSlave, I2cSlavePowerSwitch, Parts, Parts2, Parts4};
 
 mod private {
     use super::*;
